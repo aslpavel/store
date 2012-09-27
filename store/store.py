@@ -13,16 +13,16 @@ class Store (object):
     """Store data inside some flat store (file, memory)
 
     Data can be named and unnamed. Named data addressed by its name.
-    Unnamaed data addressed by its descriptor which can change if data changed.
+    Unnamed data addressed by its descriptor which can change if data changed.
 
-    Descriptor:
+    Descriptor format:
 
         0       8         order           64
         +-------+-----------+-------------+
         | order | data size | data offset |
         +-------+-----------+-------------+
 
-        Because data offset is always alligned by its order, first order bits
+        Because data offset is always aligned by its order, first order bits
         of the offset contains actual data size.
     """
 
@@ -115,7 +115,7 @@ class Store (object):
     def Delete (self, desc):
         """Delete data by descriptor
 
-        Free space occupieda by data pointed by descriptor
+        Free space occupied by data pointed by descriptor
         """
         if not desc:
             return
@@ -139,7 +139,7 @@ class Store (object):
     # Reserve                                                                  #
     #--------------------------------------------------------------------------#
     def Reserve (self, size, desc = None):
-        """Reserve space without actualy writing anything in it
+        """Reserve space without actually writing anything in it
         """
         if desc:
             desc_offset, desc_size, desc_order = self.desc_unpack (desc)
@@ -188,7 +188,7 @@ class Store (object):
     def desc_pack (self, offset, size, order):
         """Pack descriptor
         """
-        assert not (offset & size - 1), 'Offset is not alligned'
+        assert not (offset & size - 1), 'Offset is not aligned'
         return order | (offset | size - 1) << 8
 
     def desc_unpack (self, desc):
