@@ -1,19 +1,14 @@
 # -*- coding: utf-8 -*-
-from . import store
-
-from .store import *
-
-__all__ = store.__all__
 
 #------------------------------------------------------------------------------#
 # Load Test Protocol                                                           #
 #------------------------------------------------------------------------------#
 def load_tests (loader, tests, pattern):
     from unittest import TestSuite
-    from . import tests
+    from . import list, alloc, store
 
     suite = TestSuite ()
-    for test in (tests,):
+    for test in (list, alloc, store,):
         suite.addTests (loader.loadTestsFromModule (test))
 
     return suite

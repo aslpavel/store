@@ -7,7 +7,7 @@ from ..list import StructList
 
 __all__ = ('StoreAllocator',)
 #------------------------------------------------------------------------------#
-# Store Allocator                                                            #
+# Store Allocator                                                              #
 #------------------------------------------------------------------------------#
 class StoreAllocator (object):
     """Store Allocator

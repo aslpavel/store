@@ -174,6 +174,15 @@ class Store (object):
         self.SaveByOffset (0, self.header.pack (self.alloc_desc, self.names_desc))
 
     #--------------------------------------------------------------------------#
+    # Used                                                                     #
+    #--------------------------------------------------------------------------#
+    @property
+    def Used (self):
+        """Total space used
+        """
+        return self.alloc.Used + self.header_size
+
+    #--------------------------------------------------------------------------#
     # Private                                                                  #
     #--------------------------------------------------------------------------#
     def desc_pack (self, offset, size, order):

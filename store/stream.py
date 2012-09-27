@@ -5,7 +5,7 @@ from .store import Store
 
 __all__ = ('StreamStore', 'FileStore',)
 #------------------------------------------------------------------------------#
-# StreamStore                                                                  #
+# Stream Store                                                                 #
 #------------------------------------------------------------------------------#
 class StreamStore (Store):
     """Stream based store
@@ -29,7 +29,7 @@ class StreamStore (Store):
         self.stream.flush ()
 
 #------------------------------------------------------------------------------#
-# FileStore                                                                  #
+# File Store                                                                   #
 #------------------------------------------------------------------------------#
 class FileStore (StreamStore):
     """File based store
