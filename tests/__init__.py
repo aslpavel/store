@@ -5,10 +5,10 @@
 #------------------------------------------------------------------------------#
 def load_tests (loader, tests, pattern):
     from unittest import TestSuite
-    from . import list, alloc, store
+    from . import serialize, alloc, store
 
     suite = TestSuite ()
-    for test in (list, alloc, store,):
+    for test in (serialize, alloc, store,):
         suite.addTests (loader.loadTestsFromModule (test))
 
     return suite

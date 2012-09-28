@@ -3,7 +3,7 @@ import io
 import struct
 
 from .alloc import StoreAllocator
-from ..list import BytesList, StructList
+from ..serialize import BytesSerializer, StructSerializer
 
 __all__ = ('Store',)
 #------------------------------------------------------------------------------#
@@ -45,8 +45,8 @@ class Store (object):
 
             stream = io.BytesIO (self.Load (self.names_desc))
             self.names = dict (zip (
-                BytesList.FromStream (stream),                      # names
-                StructList.FromStream (self.desc_format, stream)))  # descs
+                BytesSerializer.FromStream (stream),                      # names
+                StructSerializer.FromStream (stream, self.desc_format)))  # descs
 
     #--------------------------------------------------------------------------#
     # Load                                                                     #
@@ -159,8 +159,8 @@ class Store (object):
         # names
         names = tuple (self.names.items ())
         stream = io.BytesIO ()
-        BytesList  (name for name, desc in names).ToStream (stream)
-        StructList (self.desc_format, (desc for name, desc in names)).ToStream (stream)
+        BytesSerializer.ToStream (stream, (name for name, desc in names))
+        StructSerializer.ToStream (stream, self.desc_format, (desc for name, desc in names))
         self.names_desc = self.Save (stream.getvalue (), self.names_desc)
 
         # allocator

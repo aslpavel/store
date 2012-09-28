@@ -3,7 +3,7 @@ import operator
 import functools
 from bisect import bisect_left
 
-from ..list import StructList
+from ..serialize import StructSerializer
 
 __all__ = ('StoreAllocator',)
 #------------------------------------------------------------------------------#
@@ -102,11 +102,11 @@ class StoreAllocator (object):
     def ToStream (self, stream):
         """Save allocator to stream
         """
-        packed = StructList ('>Q')
+        packed = []
         for mapping in self.mapping:
             packed.append (len (mapping))
             packed.extend (mapping)
-        packed.ToStream (stream)
+        StructSerializer.ToStream (stream, '>Q', packed)
 
         return stream
 
@@ -115,7 +115,7 @@ class StoreAllocator (object):
         """Load allocator from stream
         """
         mapping     = []
-        packed      = StructList.FromStream ('>Q', stream)
+        packed      = StructSerializer.FromStream (stream, '>Q')
         packed_size = len (packed)
 
         index = 0
