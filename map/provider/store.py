@@ -37,12 +37,12 @@ class StoreBPTreeProvider (BPTreeProvider):
     def __init__ (self, store, name, order = None, key_type = None, value_type = None, compress = None):
         """Create provider
 
-        Create new provider or load existing one identified by name. Compress
+        Creates new provider or loads existing one identified by name. Compress
         argument specifies compression level default is 9 (maximum compression).
         If key_type (value_type) is not specified they are set to 'pickle'
         """
         self.store = store
-        self.name = name.encode () if hasattr (name, 'encode') else name
+        self.name = name
 
         self.d2n = {}
         self.desc_next = -1
@@ -270,7 +270,7 @@ class StoreBPTreeProvider (BPTreeProvider):
         if prune:
             # release all nodes except root
             self.d2n.clear ()
-            self.d2n [self.root.desc] = root
+            self.d2n [self.root.desc] = self.root
 
         #----------------------------------------------------------------------#
         # Flush State                                                          #
