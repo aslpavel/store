@@ -103,7 +103,7 @@ class StoreAllocator (object):
         """Save allocator to stream
         """
         packed = []
-        for mapping in self.mapping:
+        for mapping in self.mapping or []:
             packed.append (len (mapping))
             packed.extend (mapping)
         StructSerializer.ToStream (stream, '>Q', packed)
@@ -128,6 +128,6 @@ class StoreAllocator (object):
             else:
                 mapping.append ([])
 
-        return cls (mapping)
+        return cls (mapping or None)
 
 # vim: nu ft=python columns=120 :

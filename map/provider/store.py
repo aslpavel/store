@@ -337,6 +337,20 @@ class StoreBPTreeProvider (BPTreeProvider):
             self.store.Delete (node.desc)
 
     #--------------------------------------------------------------------------#
+    # Drop                                                                     #
+    #--------------------------------------------------------------------------#
+    def Drop (self):
+        """Completely delete provider from the store
+        """
+        self.Flush ()
+
+        for node in tuple (self):
+            self.store.Delete (node.desc)
+        self.store.DeleteByName (self.name)
+
+        self.root = self.NodeCreate ([], [], True)
+
+    #--------------------------------------------------------------------------#
     # Private                                                                  #
     #--------------------------------------------------------------------------#
     def node_load (self, desc):

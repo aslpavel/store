@@ -43,10 +43,13 @@ class Store (object):
             self.alloc_desc, self.names_desc = self.header.unpack (self.LoadByOffset (0, self.header.size))
             self.alloc = StoreAllocator.FromStream (io.BytesIO (self.Load (self.alloc_desc)))
 
-            stream = io.BytesIO (self.Load (self.names_desc))
-            self.names = dict (zip (
-                BytesSerializer.FromStream (stream),                      # names
-                StructSerializer.FromStream (stream, self.desc_format)))  # descs
+            if self.names_desc:
+                stream = io.BytesIO (self.Load (self.names_desc))
+                self.names = dict (zip (
+                    BytesSerializer.FromStream (stream),                      # names
+                    StructSerializer.FromStream (stream, self.desc_format)))  # descs
+            else:
+                self.names = {}
 
     #--------------------------------------------------------------------------#
     # Load                                                                     #
@@ -157,11 +160,15 @@ class Store (object):
         """Flush current state
         """
         # names
-        names = tuple (self.names.items ())
-        stream = io.BytesIO ()
-        BytesSerializer.ToStream (stream, (name for name, desc in names))
-        StructSerializer.ToStream (stream, self.desc_format, (desc for name, desc in names))
-        self.names_desc = self.Save (stream.getvalue (), self.names_desc)
+        if self.names:
+            names = tuple (self.names.items ())
+            stream = io.BytesIO ()
+            BytesSerializer.ToStream (stream, (name for name, desc in names))
+            StructSerializer.ToStream (stream, self.desc_format, (desc for name, desc in names))
+            self.names_desc = self.Save (stream.getvalue (), self.names_desc)
+        else:
+            self.Delete (self.names_desc)
+            self.names_desc = 0
 
         # allocator
         while True:
