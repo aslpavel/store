@@ -56,6 +56,10 @@ class FileStore (StreamStore):
 
         StreamStore.__init__ (self, io.open (path, filemode, buffering = 0))
 
+    def Flush (self):
+        if self.mode != 'r':
+            StreamStore.Flush (self)
+
     def Dispose (self):
         StreamStore.Dispose (self)
         self.stream.close ()

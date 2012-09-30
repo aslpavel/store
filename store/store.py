@@ -17,13 +17,13 @@ class Store (object):
 
     Descriptor format:
 
-        0       8         order           64
-        +-------+-----------+-------------+
-        | order | data size | data offset |
-        +-------+-----------+-------------+
+        0       8             order           64
+        +-------+---------------+-------------+
+        | order | data size - 1 | data offset |
+        +-------+---------------+-------------+
 
         Because data offset is always aligned by its order, first order bits
-        of the offset contains actual data size.
+        of the offset can be used to store actual data size.
     """
 
     header      = struct.Struct ('>QQ')
@@ -66,12 +66,12 @@ class Store (object):
         return self.Load (self.names.get (name, 0))
 
     def LoadByOffset (self, offset, size):
-        """Laod data by offset and size
+        """Load data by offset and size
         """
         raise NotImplementedError ()
 
     def __getitem__ (self, name):
-        """Laod data by name
+        """Load data by name
         """
         return self.LoadByName (name)
 
