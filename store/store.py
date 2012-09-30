@@ -32,24 +32,22 @@ class Store (object):
 
     def __init__ (self):
         header = self.LoadByOffset (0, self.header.size)
-        if not header:
-            self.alloc = StoreAllocator ()
-            self.alloc_desc = 0
+        self.alloc_desc, self.names_desc = self.header.unpack (header) if header else (0, 0)
 
-            self.names = {}
-            self.names_desc = 0
-
-        else:
-            self.alloc_desc, self.names_desc = self.header.unpack (self.LoadByOffset (0, self.header.size))
+        # allocator
+        if self.alloc_desc:
             self.alloc = StoreAllocator.FromStream (io.BytesIO (self.Load (self.alloc_desc)))
+        else:
+            self.alloc = StoreAllocator ()
 
-            if self.names_desc:
-                stream = io.BytesIO (self.Load (self.names_desc))
-                self.names = dict (zip (
-                    BytesSerializer.FromStream (stream),                      # names
-                    StructSerializer.FromStream (stream, self.desc_format)))  # descs
-            else:
-                self.names = {}
+        # names
+        if self.names_desc:
+            stream = io.BytesIO (self.Load (self.names_desc))
+            self.names = dict (zip (
+                BytesSerializer.FromStream (stream),                      # names
+                StructSerializer.FromStream (stream, self.desc_format)))  # descs
+        else:
+            self.names = {}
 
     #--------------------------------------------------------------------------#
     # Load                                                                     #
@@ -166,16 +164,24 @@ class Store (object):
             BytesSerializer.ToStream (stream, (name for name, desc in names))
             StructSerializer.ToStream (stream, self.desc_format, (desc for name, desc in names))
             self.names_desc = self.Save (stream.getvalue (), self.names_desc)
+
         else:
             self.Delete (self.names_desc)
             self.names_desc = 0
 
         # allocator
-        while True:
-            desc = self.Save (self.alloc.ToStream (io.BytesIO ()).getvalue (), self.alloc_desc)
-            if desc == self.alloc_desc:
-                break
-            self.alloc_desc = desc
+        if self.alloc.Used != 1 << self.desc_unpack (self.alloc_desc) [2]:
+            while True:
+                desc = self.Save (self.alloc.ToStream (io.BytesIO ()).getvalue (), self.alloc_desc)
+                if desc == self.alloc_desc:
+                    break
+                self.alloc_desc = desc
+
+        else:
+            self.Delete (self.alloc_desc)
+            self.alloc_desc = 0
+
+            assert not self.alloc.Used, 'Allocator is broken'
 
         # header
         self.SaveByOffset (0, self.header.pack (self.alloc_desc, self.names_desc))

@@ -348,7 +348,9 @@ class StoreBPTreeProvider (BPTreeProvider):
             self.store.Delete (node.desc)
         self.store.DeleteByName (self.name)
 
-        self.root = self.NodeCreate ([], [], True)
+        self.size  = 0
+        self.depth = 1
+        self.root  = self.NodeCreate ([], [], True)
 
     #--------------------------------------------------------------------------#
     # Private                                                                  #
