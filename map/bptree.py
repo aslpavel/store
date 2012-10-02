@@ -318,7 +318,7 @@ class BPTree (MutableMapping):
         return map (itemgetter (0), self.ItemRange ())
 
     def __contains__ (self, key):
-        return self.ItemGet (key, default = None) is not None
+        return self.ItemGet (key, None) is not None
 
     def get (self, key, default = None):
         return self.ItemGet (key, default)

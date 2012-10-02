@@ -13,7 +13,7 @@ else:
 
 from .provider import BPTreeProvider
 from ..bptree import BPTreeNode, BPTreeLeaf
-from ...serialize import StructSerializer
+from ...serialize import BytesSerializer, StructSerializer
 
 __all__ = ('StoreBPTreeProvider',)
 #------------------------------------------------------------------------------#

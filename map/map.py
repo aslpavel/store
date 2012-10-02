@@ -25,7 +25,7 @@ class StoreMap (BPTree):
     def Store (self):
         """Store property
         """
-        return self.provide.Store
+        return self.provider.Store
 
     #--------------------------------------------------------------------------#
     # Flush                                                                    #
