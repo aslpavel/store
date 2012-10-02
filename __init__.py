@@ -10,6 +10,8 @@ __all__ = store.__all__ + map.__all__
 # Load Test Protocol                                                           #
 #------------------------------------------------------------------------------#
 def load_tests (loader, tests, pattern):
+    """Load test protocol
+    """
     from unittest import TestSuite
     from . import tests
 

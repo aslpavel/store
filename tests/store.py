@@ -9,7 +9,12 @@ from ..store import StreamStore
 # Store Test                                                                   #
 #------------------------------------------------------------------------------#
 class StoreTest (unittest.TestCase):
-    def test (self):
+    """Store unit tests
+    """
+
+    def testSimple (self):
+        """Simple tests
+        """
         stream = io.BytesIO ()
         with StreamStore (stream) as store:
             # empty
@@ -31,7 +36,9 @@ class StoreTest (unittest.TestCase):
             self.assertEqual (store [name], name_data)
 
 
-    def testRandom (self):
+    def testStress (self):
+        """Stress tests
+        """
         count = 1 << 14
         datas = [str (random.randint (0, count)).encode () * random.randint (1, 16) for _ in range (count)]
 

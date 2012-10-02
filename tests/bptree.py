@@ -12,7 +12,12 @@ from ..store import StreamStore
 # B+Tree Test                                                                  #
 #------------------------------------------------------------------------------#
 class BPTreeTest (unittest.TestCase):
-    def test (self):
+    """B+Tree unit tests
+    """
+
+    def testConsistency (self):
+        """B+Tree consistency tests
+        """
         provider = self.provider ()
         tree, std = BPTree (provider), {}
 
@@ -79,6 +84,8 @@ class BPTreeTest (unittest.TestCase):
         validate (tree)
 
     def provider (self, source = None):
+        """Memory B+Tree provider
+        """
         if source is None:
             return MemoryBPTreeProvider(order = 7)
         return source
@@ -87,15 +94,12 @@ class BPTreeTest (unittest.TestCase):
 # Store B+Tree Test                                                            #
 #------------------------------------------------------------------------------#
 class StoreBPTreeTest (BPTreeTest):
-    def test (self):
-        try:
-            BPTreeTest.test (self)
-        except Exception:
-            import traceback; traceback.print_exc ()
-            import pdb; pdb.post_mortem ()
-            raise
+    """B+Tree with store provider unit tests
+    """
 
     def provider (self, source = None):
+        """Store B+Tree provider
+        """
         if source is None:
             return StoreBPTreeProvider (StreamStore (io.BytesIO ()), b'::test', order = 7)
         source.Flush ()

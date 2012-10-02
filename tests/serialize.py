@@ -5,10 +5,15 @@ import unittest
 from ..serialize import StructSerializer, BytesSerializer
 
 #------------------------------------------------------------------------------#
-# Struct List Test                                                             #
+# Struct Serializer Test                                                       #
 #------------------------------------------------------------------------------#
-class StructListTest (unittest.TestCase):
+class StructSerializerTest (unittest.TestCase):
+    """Structure serializer unit tests
+    """
+
     def testPersist (self):
+        """Test persistence
+        """
         struct_save = []
 
         # emtpy
@@ -41,7 +46,12 @@ class StructListTest (unittest.TestCase):
 # Bytes List Test                                                              #
 #------------------------------------------------------------------------------#
 class BytesListTest (unittest.TestCase):
+    """Bytes serializer unit tests
+    """
+
     def testPersist (self):
+        """Test persistence
+        """
         bytes_save = []
 
         # empty

@@ -9,7 +9,12 @@ __all__ = ('StoreAllocatorTest',)
 # Store Allocator Test                                                         #
 #------------------------------------------------------------------------------#
 class StoreAllocatorTest (unittest.TestCase):
-    def test (self):
+    """Store allocator unit tests
+    """
+
+    def testStress (self):
+        """Stress test for store allocator
+        """
         alloc  = StoreAllocator ()
         blocks = []
         self.assertEqual (len (set (offset for offset, order in blocks)), len (blocks))

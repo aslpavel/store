@@ -4,6 +4,8 @@
 # Load Test Protocol                                                           #
 #------------------------------------------------------------------------------#
 def load_tests (loader, tests, pattern):
+    """Load tests protocol
+    """
     from unittest import TestSuite
     from . import serialize, alloc, store, bptree
 
