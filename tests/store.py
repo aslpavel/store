@@ -16,7 +16,7 @@ class StoreTest (unittest.TestCase):
         """Simple tests
         """
         stream = io.BytesIO ()
-        with StreamStore (stream) as store:
+        with StreamStore (stream, 1) as store:
             # empty
             self.assertEqual (store.Save (b''), 0)
             self.assertEqual (store.Load (0), b'')
@@ -31,7 +31,7 @@ class StoreTest (unittest.TestCase):
             store [name] = name_data
             self.assertEqual (store [name], name_data)
 
-        with StreamStore (stream) as store:
+        with StreamStore (stream, 1) as store:
             self.assertEqual (store.Load (desc), desc_data)
             self.assertEqual (store [name], name_data)
 

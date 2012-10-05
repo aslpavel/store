@@ -44,7 +44,7 @@ class StoreAllocator (object):
 
             return 1 << order, order
 
-        # find sutable block
+        # find suitable block
         block = None
         for block_order in range (order, len (self.mapping)):
             mapping = self.mapping [block_order]

@@ -30,8 +30,10 @@ class Store (object):
     header_size = header.size
     desc_format = '>Q'
 
-    def __init__ (self):
-        header = self.LoadByOffset (0, self.header.size)
+    def __init__ (self, offset = None):
+        self.offset = offset or 0
+
+        header = self.LoadByOffset (self.offset, self.header_size)
         self.alloc_desc, self.names_desc = self.header.unpack (header) if header else (0, 0)
 
         # allocator
@@ -59,7 +61,7 @@ class Store (object):
             return b''
 
         offset, size, order = self.desc_unpack (desc)
-        return self.LoadByOffset (offset + self.header_size, size)
+        return self.LoadByOffset (self.offset + self.header_size + offset, size)
 
     def LoadByName (self, name):
         """Load data by name
@@ -89,7 +91,7 @@ class Store (object):
             return 0
 
         desc = self.Reserve (len (data), desc)
-        self.SaveByOffset (self.desc_unpack (desc) [0] + self.header_size, data)
+        self.SaveByOffset (self.offset + self.header_size + self.desc_unpack (desc) [0], data)
         return desc
 
     def SaveByName (self, name, data):
@@ -184,7 +186,7 @@ class Store (object):
             assert not self.alloc.Used, 'Allocator is broken'
 
         # header
-        self.SaveByOffset (0, self.header.pack (self.alloc_desc, self.names_desc))
+        self.SaveByOffset (self.offset, self.header.pack (self.alloc_desc, self.names_desc))
 
     #--------------------------------------------------------------------------#
     # Used                                                                     #

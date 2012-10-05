@@ -12,10 +12,10 @@ class StreamStore (Store):
     """Stream based store
     """
 
-    def __init__ (self, stream):
+    def __init__ (self, stream, offset = None):
         self.stream = stream
 
-        Store.__init__ (self)
+        Store.__init__ (self, offset)
 
     def SaveByOffset (self, offset, data):
         self.stream.seek (offset)
@@ -36,7 +36,7 @@ class FileStore (StreamStore):
     """File based store
     """
 
-    def __init__ (self, path, mode = None):
+    def __init__ (self, path, mode = None, offset = None):
         mode = mode or 'r'
         self.mode = mode
 
@@ -54,7 +54,7 @@ class FileStore (StreamStore):
         else:
             raise ValueError ('Unknown mode: {}'.format (mode))
 
-        StreamStore.__init__ (self, io.open (path, filemode, buffering = 0))
+        StreamStore.__init__ (self, io.open (path, filemode, buffering = 0), offset)
 
     def Flush (self):
         if self.mode != 'r':
