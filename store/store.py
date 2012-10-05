@@ -189,13 +189,13 @@ class Store (object):
         self.SaveByOffset (self.offset, self.header.pack (self.alloc_desc, self.names_desc))
 
     #--------------------------------------------------------------------------#
-    # Used                                                                     #
+    # Size                                                                     #
     #--------------------------------------------------------------------------#
     @property
-    def Used (self):
+    def Size (self):
         """Total space used
         """
-        return self.alloc.Used + self.header_size
+        return self.alloc.Size + self.header_size
 
     #--------------------------------------------------------------------------#
     # Private                                                                  #

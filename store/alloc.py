@@ -87,7 +87,7 @@ class StoreAllocator (object):
         self.mapping = None
 
     @property
-    def Used (self):
+    def Size (self):
         """Total size of allocated space
         """
         if self.mapping is None:
