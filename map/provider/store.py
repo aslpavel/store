@@ -51,7 +51,6 @@ class StoreBPTreeProvider (BPTreeProvider):
         # unpack state
         state_data = self.store.LoadByName (name)
         if state_data:
-            self.crc32_struct = struct.Struct ('>I')
             state_json = state_data [:-self.crc32_struct.size]
             crc32 = self.crc32_struct.unpack (state_data [-self.crc32_struct.size:]) [0]
 
@@ -286,7 +285,10 @@ class StoreBPTreeProvider (BPTreeProvider):
         }
         state_json = json.dumps (state).encode ()
         crc32 = binascii.crc32 (state_json) & 0xffffffff
-        self.store.SaveByName (self.name, state_json + self.crc32_struct.pack (crc32))
+
+        state_data = state_json + self.crc32_struct.pack (crc32)
+        if self.store.LoadByName (self.name) != state_data:
+            self.store.SaveByName (self.name, state_data)
 
     #--------------------------------------------------------------------------#
     # Properties                                                               #
