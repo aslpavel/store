@@ -29,6 +29,6 @@ class StoreAllocatorTest (unittest.TestCase):
 
         for offset, order in blocks:
             alloc.Free (offset, order)
-        self.assertEqual (alloc.Used, 0)
+        self.assertEqual (alloc.Size, 0)
 
 # vim: nu ft=python columns=120 :

@@ -172,7 +172,7 @@ class Store (object):
             self.names_desc = 0
 
         # allocator
-        if self.alloc.Used != 1 << self.desc_unpack (self.alloc_desc) [2]:
+        if self.alloc.Size != 1 << self.desc_unpack (self.alloc_desc) [2]:
             while True:
                 desc = self.Save (self.alloc.ToStream (io.BytesIO ()).getvalue (), self.alloc_desc)
                 if desc == self.alloc_desc:
@@ -183,7 +183,7 @@ class Store (object):
             self.Delete (self.alloc_desc)
             self.alloc_desc = 0
 
-            assert not self.alloc.Used, 'Allocator is broken'
+            assert not self.alloc.Size, 'Allocator is broken'
 
         # header
         self.SaveByOffset (self.offset, self.header.pack (self.alloc_desc, self.names_desc))
