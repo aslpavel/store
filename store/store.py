@@ -172,17 +172,16 @@ class Store (object):
             self.names_desc = 0
 
         # allocator
-        if self.alloc.Size != 1 << self.desc_unpack (self.alloc_desc) [2]:
+        if (self.alloc_desc or self.alloc.Size and
+            self.alloc.Size != 1 << self.desc_unpack (self.alloc_desc) [2]):
             while True:
-                desc = self.Save (self.alloc.ToStream (io.BytesIO ()).getvalue (), self.alloc_desc)
-                if desc == self.alloc_desc:
+                alloc_state = self.alloc.ToStream (io.BytesIO ()).getvalue ()
+                self.alloc_desc, alloc_desc = self.Save (alloc_state, self.alloc_desc), self.alloc_desc
+                if self.alloc_desc == alloc_desc:
                     break
-                self.alloc_desc = desc
-
         else:
-            self.Delete (self.alloc_desc)
-            self.alloc_desc = 0
-
+            alloc_desc, self.alloc_desc = self.alloc_desc, 0
+            self.Delete (alloc_desc)
             assert not self.alloc.Size, 'Allocator is broken'
 
         # header
