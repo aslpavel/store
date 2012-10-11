@@ -1,10 +1,7 @@
 # -*- coding: utf-8 -*-
-from . import store, map
-
+from . import store
 from .store import *
-from .map import *
-
-__all__ = store.__all__ + map.__all__
+__all__ = store.__all__
 #------------------------------------------------------------------------------#
 # Load Test Protocol                                                           #
 #------------------------------------------------------------------------------#

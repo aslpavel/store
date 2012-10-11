@@ -2,11 +2,11 @@
 from .bptree import BPTree
 from .provider.store import StoreBPTreeProvider
 
-__all__ = ('StoreMap',)
+__all__ = ('StoreMapping',)
 #------------------------------------------------------------------------------#
-# Store Map                                                                    #
+# Store Mapping                                                                #
 #------------------------------------------------------------------------------#
-class StoreMap (BPTree):
+class StoreMapping (BPTree):
     """B+Tree with store as back end
     """
     def __init__ (self, store, name, order = None, key_type = None, value_type = None, compress = None):
@@ -49,7 +49,7 @@ class StoreMap (BPTree):
     def Dispose (self):
         """Flush dirty nodes to store
         """
-        self.Flush ()
+        self.Flush (prune = True)
 
     def __enter__ (self):
         return self

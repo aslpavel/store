@@ -32,6 +32,7 @@ class Store (object):
 
     def __init__ (self, offset = None):
         self.offset = offset or 0
+        self.disposables = []
 
         header = self.LoadByOffset (self.offset, self.header_size)
         self.alloc_desc, self.names_desc = self.header.unpack (header) if header else (0, 0)
@@ -188,6 +189,18 @@ class Store (object):
         self.SaveByOffset (self.offset, self.header.pack (self.alloc_desc, self.names_desc))
 
     #--------------------------------------------------------------------------#
+    # Mapping                                                                  #
+    #--------------------------------------------------------------------------#
+    def Mapping (self, name, order = None, key_type = None, value_type = None, compress = None):
+        """Create name mapping (B+Tree)
+        """
+        from ..mapping import StoreMapping
+
+        mapping = StoreMapping (self, name, order, key_type, value_type, compress)
+        self.disposables.append (mapping)
+        return mapping
+
+    #--------------------------------------------------------------------------#
     # Size                                                                     #
     #--------------------------------------------------------------------------#
     @property
@@ -219,6 +232,11 @@ class Store (object):
     def Dispose (self):
         """Flush and Close
         """
+
+        disposables, self.disposables = self.disposables, []
+        for disposable in reversed (disposables):
+            disposable.Dispose ()
+
         self.Flush ()
 
     def __enter__ (self):

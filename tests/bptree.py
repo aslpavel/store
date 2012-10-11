@@ -3,9 +3,9 @@ import io
 import random
 import unittest
 
-from ..map.bptree import BPTree
-from ..map.provider.memory import MemoryBPTreeProvider
-from ..map.provider.store import StoreBPTreeProvider
+from ..mapping.bptree import BPTree
+from ..mapping.provider.memory import MemoryBPTreeProvider
+from ..mapping.provider.store import StoreBPTreeProvider
 from ..store import StreamStore
 
 #------------------------------------------------------------------------------#
