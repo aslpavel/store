@@ -406,7 +406,7 @@ class StoreBPTreeProvider (BPTreeProvider):
                 lambda stream: pickle.load (stream))
 
         elif type.startswith ('struct:'):
-            format = type.rpartition (':') [-1].decode ()
+            format = type.rpartition (':') [-1].encode ()
             return ('struct:{}'.format (format),
                 lambda stream, items: StructSerializer.ToStream (stream, format, items),
                 lambda stream: StructSerializer.FromStream (stream, format))
