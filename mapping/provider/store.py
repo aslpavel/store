@@ -407,7 +407,7 @@ class StoreBPTreeProvider (BPTreeProvider):
 
         elif type.startswith ('struct:'):
             format = type.rpartition (':') [-1].encode ()
-            return ('struct:{}'.format (format),
+            return ('struct:{}'.format (format.decode ()),
                 lambda stream, items: StructSerializer.ToStream (stream, format, items),
                 lambda stream: StructSerializer.FromStream (stream, format))
 
