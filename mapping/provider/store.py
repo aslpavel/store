@@ -24,11 +24,11 @@ class StoreBPTreeProvider (BPTreeProvider):
 
     Keeps serialized (possible compressed) nodes inside store. Keys and values
     are serialized according to specified type. Possible values for type are
-    'pickle', 'bytes', 'struct:struct_type'.
+    'bytes', 'pickle:protocol', 'struct:struct_type'.
     """
 
     order_default    = 128
-    type_default     = 'pickle'
+    type_default     = 'pickle:{}'.format (pickle.HIGHEST_PROTOCOL)
     compress_default = 9
     desc_format      = '>Q'
     crc32_struct     = struct.Struct ('>I')
@@ -64,11 +64,12 @@ class StoreBPTreeProvider (BPTreeProvider):
             self.depth = state ['depth']
             self.order = state ['order']
 
-            # serializers
-            self.key_type   = state ['key_type']
-            self.value_type = state ['value_type']
-            self.keys_to_stream, self.keys_from_stream = self.type_serializer (self.key_type)
-            self.values_to_stream, self.values_from_stream = self.type_serializer (self.value_type)
+            # parse type
+            self.key_type, self.keys_to_stream, self.keys_from_stream = \
+                self.type_parse (state ['key_type'])
+
+            self.value_type, self.values_to_stream, self.values_from_stream = \
+                self.type_parse (state ['value_type'])
 
             # options
             self.compress = state.get ('compress', 0)
@@ -82,11 +83,12 @@ class StoreBPTreeProvider (BPTreeProvider):
             self.depth = 1
             self.order = order or self.order_default
 
-            # serializers
-            self.key_type = key_type or self.type_default
-            self.value_type = value_type or self.type_default
-            self.keys_to_stream, self.keys_from_stream = self.type_serializer (self.key_type)
-            self.values_to_stream, self.values_from_stream = self.type_serializer (self.value_type)
+            # parse type
+            self.key_type, self.keys_to_stream, self.keys_from_stream = \
+                self.type_parse (key_type or self.type_default)
+
+            self.value_type, self.values_to_stream, self.values_from_stream = \
+                self.type_parse (value_type or self.type_default)
 
             # options
             self.compress = compress if compress is not None else self.compress_default
@@ -387,23 +389,27 @@ class StoreBPTreeProvider (BPTreeProvider):
         self.d2n [desc] = node
         return node
 
-    def type_serializer (self, type):
-        """Serializer by its type
+    def type_parse (self, type):
+        """Parse type
 
-        Returns to_stream, from_steram functions for specified type.
+        Returns (type, to_stream, from_steram) for specified type.
         """
-        if type == 'pickle':
-            return (lambda stream, items: pickle.dump (items, stream),
-                    lambda stream: pickle.load (stream))
+        if type == 'bytes':
+            return ('bytes',
+                lambda stream, items: BytesSerializer.ToStream (stream, items),
+                lambda stream: BytesSerializer.FromStream (stream))
 
-        elif type == 'bytes':
-            return (lambda stream, items: BytesSerializer.ToStream (stream, items),
-                    lambda stream: BytesSerializer.FromStream (stream))
+        elif type.startswith ('pickle'):
+            protocol = int (type.rpartition (':') [-1] or str (pickle.HIGHEST_PROTOCOL))
+            return ('pickle:{}'.format (protocol),
+                lambda stream, items: pickle.dump (items, stream, protocol),
+                lambda stream: pickle.load (stream))
 
         elif type.startswith ('struct:'):
-            format = type [len ('struct:'):]
-            return (lambda stream, items: StructSerializer.ToStream (stream, format, items),
-                    lambda stream: StructSerializer.FromStream (stream, format))
+            format = type.rpartition (':') [-1].decode ()
+            return ('struct:{}'.format (format),
+                lambda stream, items: StructSerializer.ToStream (stream, format, items),
+                lambda stream: StructSerializer.FromStream (stream, format))
 
         raise ValueError ('Unknown serializer type: {}'.format (type))
 
