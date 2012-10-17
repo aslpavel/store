@@ -285,7 +285,7 @@ class StoreBPTreeProvider (BPTreeProvider):
             'compress'   : self.compress,
             'root'       : self.root.desc
         }
-        state_json = json.dumps (state).encode ()
+        state_json = json.dumps (state, sort_keys = True).encode ()
         crc32 = binascii.crc32 (state_json) & 0xffffffff
 
         state_data = state_json + self.crc32_struct.pack (crc32)
