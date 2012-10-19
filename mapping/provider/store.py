@@ -5,6 +5,8 @@ import json
 import zlib
 import struct
 import binascii
+import operator
+import functools
 from bisect import bisect
 if sys.version_info [0] > 2:
     import pickle
@@ -310,6 +312,12 @@ class StoreBPTreeProvider (BPTreeProvider):
     def Root (self, value = None):
         self.root = self.root if value is None else value
         return self.root
+
+    def SizeOnStore (self):
+        """Size occupied on store
+        """
+        return functools.reduce (operator.add, (self.store.desc_unpack (node.desc) [1]
+            for node in self if node.desc > 0), 0)
 
     #--------------------------------------------------------------------------#
     # Nodes                                                                    #

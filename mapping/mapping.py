@@ -27,6 +27,12 @@ class StoreMapping (BPTree):
         """
         return self.provider.Store
 
+    @property
+    def SizeOnStore (self):
+        """Size occupied on store
+        """
+        return self.provider.SizeOnStore ()
+
     #--------------------------------------------------------------------------#
     # Flush                                                                    #
     #--------------------------------------------------------------------------#
