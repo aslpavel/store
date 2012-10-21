@@ -21,7 +21,7 @@ class StoreTest (unittest.TestCase):
             self.assertEqual (store.Save (b''), 0)
             self.assertEqual (store.Load (0), b'')
 
-            # unamed
+            # unnamed
             desc_data = b'some test data'
             desc = store.Save (desc_data)
             self.assertEqual (store.Load (desc), desc_data)

@@ -316,7 +316,7 @@ class StoreBPTreeProvider (BPTreeProvider):
     def SizeOnStore (self):
         """Size occupied on store
         """
-        return functools.reduce (operator.add, (self.store.desc_unpack (node.desc) [1]
+        return functools.reduce (operator.add, ((1 << self.store.desc_unpack (node.desc) [2])
             for node in self if node.desc > 0), 0)
 
     #--------------------------------------------------------------------------#
