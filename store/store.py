@@ -218,7 +218,7 @@ class Store (object):
             size += 1 << self.desc_unpack (self.names_desc) [2]
 
         for desc in self.names.values ():
-            size += 1 << self.desc_unpack (self.names_desc) [2]
+            size += 1 << self.desc_unpack (desc) [2]
 
         return self.alloc.Size - size
 
