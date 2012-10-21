@@ -205,9 +205,22 @@ class Store (object):
     #--------------------------------------------------------------------------#
     @property
     def Size (self):
-        """Total space used
+        """Total space used excluding internal storage data
         """
-        return self.alloc.Size + self.header_size
+        size = 0
+
+        # allocator
+        if self.alloc_desc:
+            size += 1 << self.desc_unpack (self.alloc_desc) [2]
+
+        # names
+        if self.names_desc:
+            size += 1 << self.desc_unpack (self.names_desc) [2]
+
+        for desc in self.names.values ():
+            size += 1 << self.desc_unpack (self.names_desc) [2]
+
+        return self.alloc.Size - size
 
     #--------------------------------------------------------------------------#
     # Private                                                                  #

@@ -16,7 +16,7 @@ class StructSerializerTest (unittest.TestCase):
         """
         struct_save = []
 
-        # emtpy
+        # empty
         stream = io.BytesIO ()
         self.assertEqual (StructSerializer.ToStream (stream, '>L', struct_save), stream)
 

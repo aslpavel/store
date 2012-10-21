@@ -83,12 +83,19 @@ class BPTreeTest (unittest.TestCase):
         self.assertEqual (len (tree), 0)
         validate (tree)
 
-    def provider (self, source = None):
+        # reload
+        provider = self.provider (provider)
+        tree = BPTree (provider)
+        validate (tree)
+
+        return provider
+
+    def provider (self, provider = None):
         """Memory B+Tree provider
         """
-        if source is None:
+        if provider is None:
             return MemoryBPTreeProvider(order = 7)
-        return source
+        return provider
 
 #------------------------------------------------------------------------------#
 # Store B+Tree Test                                                            #
@@ -97,12 +104,17 @@ class StoreBPTreeTest (BPTreeTest):
     """B+Tree with store provider unit tests
     """
 
-    def provider (self, source = None):
+    def provider (self, provider = None):
         """Store B+Tree provider
         """
-        if source is None:
+        if provider is None:
             return StoreBPTreeProvider (StreamStore (io.BytesIO ()), b'::test', order = 7)
-        source.Flush ()
-        return StoreBPTreeProvider (source.Store, source.Name)
+        provider.Flush ()
+        return StoreBPTreeProvider (provider.Store, provider.Name)
+
+    def testConsistency (self):
+        provider = BPTreeTest.testConsistency (self)
+        provider.Drop ()
+        self.assertEqual (provider.Store.Size, 0)
 
 # vim: nu ft=python columns=120 :
