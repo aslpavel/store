@@ -143,7 +143,7 @@ class StoreBPTreeProvider (BPTreeProvider):
             leaf_queue [leaf] = leaf_stream
 
             # allocate space
-            desc = self.store.Reserve (leaf_stream.tell () + 1)
+            desc = self.store.Reserve (leaf_stream.tell () + 1, None if leaf.desc < 0 else leaf.desc)
             if leaf.desc != desc:
                 # queue parent for update
                 if leaf is not self.root:

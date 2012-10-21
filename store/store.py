@@ -69,15 +69,15 @@ class Store (object):
         """
         return self.Load (self.names.get (name, 0))
 
-    def LoadByOffset (self, offset, size):
-        """Load data by offset and size
-        """
-        raise NotImplementedError ()
-
     def __getitem__ (self, name):
         """Load data by name
         """
         return self.LoadByName (name)
+
+    def LoadByOffset (self, offset, size):
+        """Load data by offset and size
+        """
+        raise NotImplementedError ()
 
     #--------------------------------------------------------------------------#
     # Save                                                                     #
@@ -103,15 +103,15 @@ class Store (object):
         else:
             self.names [name] = self.Save (data, self.names.get (name))
 
-    def SaveByOffset (self, offset, data):
-        """Save data by offset
-        """
-        raise NotImplementedError ()
-
     def __setitem__ (self, name, data):
         """Save data by name
         """
         self.SaveByName (name, data)
+
+    def SaveByOffset (self, offset, data):
+        """Save data by offset
+        """
+        raise NotImplementedError ()
 
     #--------------------------------------------------------------------------#
     # Delete                                                                   #
