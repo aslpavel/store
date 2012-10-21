@@ -110,7 +110,8 @@ class StoreBPTreeTest (BPTreeTest):
         if provider is None:
             return StoreBPTreeProvider (StreamStore (io.BytesIO ()), b'::test', order = 7)
         provider.Flush ()
-        return StoreBPTreeProvider (provider.Store, provider.Name)
+        provider.Store.Flush ()
+        return StoreBPTreeProvider (StreamStore (provider.Store.stream), provider.Name)
 
     def testConsistency (self):
         provider = BPTreeTest.testConsistency (self)
