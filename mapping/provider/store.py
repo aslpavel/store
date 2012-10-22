@@ -4,10 +4,12 @@ import sys
 import json
 import zlib
 import struct
+import codecs
 import binascii
 import operator
 import functools
 from bisect import bisect
+
 if sys.version_info [0] > 2:
     import pickle
 else:
@@ -26,7 +28,7 @@ class StoreBPTreeProvider (BPTreeProvider):
 
     Keeps serialized (possible compressed) nodes inside store. Keys and values
     are serialized according to specified type. Possible values for type are
-    'bytes', 'pickle:protocol', 'struct:struct_type'.
+    'bytes', 'pickle:protocol', 'struct:struct_type', 'json'.
     """
 
     order_default    = 128
@@ -418,6 +420,24 @@ class StoreBPTreeProvider (BPTreeProvider):
             return ('struct:{}'.format (format.decode ()),
                 lambda stream, items: StructSerializer.ToStream (stream, format, items),
                 lambda stream: StructSerializer.FromStream (stream, format))
+
+        elif type == 'json':
+            encode = codecs.getencoder ('utf-8')
+            decode = codecs.getdecoder ('utf-8')
+
+            header = struct.Struct ('>Q')
+            header_size = header.size
+
+            def json_save (stream, items):
+                data = encode (json.dumps (items)) [0]
+                stream.write (header.pack (len (data)))
+                stream.write (data)
+
+            def json_load (stream):
+                data_size = header.unpack (stream.read (header_size)) [0]
+                return json.loads (decode (stream.read (data_size)) [0])
+
+            return ('json', json_save, json_load)
 
         raise ValueError ('Unknown serializer type: {}'.format (type))
 
