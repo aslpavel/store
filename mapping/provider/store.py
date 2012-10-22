@@ -408,13 +408,13 @@ class StoreBPTreeProvider (BPTreeProvider):
                 lambda stream: BytesSerializer.FromStream (stream))
 
         elif type.startswith ('pickle'):
-            protocol = int (type.rpartition (':') [-1] or str (pickle.HIGHEST_PROTOCOL))
+            protocol = int (type.partition (':') [-1] or str (pickle.HIGHEST_PROTOCOL))
             return ('pickle:{}'.format (protocol),
                 lambda stream, items: pickle.dump (items, stream, protocol),
                 lambda stream: pickle.load (stream))
 
         elif type.startswith ('struct:'):
-            format = type.rpartition (':') [-1].encode ()
+            format = type.partition (':') [-1].encode ()
             return ('struct:{}'.format (format.decode ()),
                 lambda stream, items: StructSerializer.ToStream (stream, format, items),
                 lambda stream: StructSerializer.FromStream (stream, format))
