@@ -18,6 +18,8 @@ else:
 from .provider import BPTreeProvider
 from ..bptree import BPTreeNode, BPTreeLeaf
 from ...serialize import Serializer
+from ...store.alloc import StoreBlock
+
 
 __all__ = ('StoreBPTreeProvider',)
 #------------------------------------------------------------------------------#
@@ -318,7 +320,7 @@ class StoreBPTreeProvider (BPTreeProvider):
     def SizeOnStore (self):
         """Size occupied on store
         """
-        return functools.reduce (operator.add, ((1 << self.store.desc_unpack (node.desc) [2])
+        return functools.reduce (operator.add, (StoreBlock (node.desc).size
             for node in self if node.desc > 0), 0)
 
     #--------------------------------------------------------------------------#
