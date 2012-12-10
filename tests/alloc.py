@@ -2,7 +2,7 @@
 import random
 import unittest
 
-from ..store.alloc import StoreAllocator
+from ..store.alloc import StoreBlock ,StoreAllocator
 
 __all__ = ('StoreAllocatorTest',)
 #------------------------------------------------------------------------------#
@@ -11,7 +11,6 @@ __all__ = ('StoreAllocatorTest',)
 class StoreAllocatorTest (unittest.TestCase):
     """Store allocator unit tests
     """
-
     def testStress (self):
         """Stress test for store allocator
         """
@@ -19,43 +18,51 @@ class StoreAllocatorTest (unittest.TestCase):
         size   = 0
         blocks = []
 
+        def reload ():
+            alloc.blocks = [StoreBlock.FromDesc (block.ToDesc ()) for block in alloc.blocks]
+
         # fill
         for _ in range (1 << 16):
             order = random.randint (1, 10)
             size += 1 << order
             blocks.append (alloc.AllocByOrder (order))
-        self.assertEqual (len (set (offset for offset, order in blocks)), len (blocks))
+        self.assertEqual (len (set (block.offset for block in blocks)), len (blocks))
         self.assertEqual (alloc.Size, size)
+        reload ()
 
         # remove half
-        for offset, order in blocks [1 << 15:]:
-            size -= 1 << order
-            alloc.Free (offset, order)
+        for block in blocks [1 << 15:]:
+            size -= block.size
+            alloc.Free (block)
         blocks = blocks [:1 << 15]
-        self.assertEqual (len (set (offset for offset, order in blocks)), len (blocks))
+        self.assertEqual (len (set (block.offset for block in blocks)), len (blocks))
         self.assertEqual (alloc.Size, size)
+        reload ()
 
         # add more
         for _ in range (1 << 15):
             order = random.randint (1, 10)
             size += 1 << order
             blocks.append (alloc.AllocByOrder (order))
-        self.assertEqual (len (set (offset for offset, order in blocks)), len (blocks))
+        self.assertEqual (len (set (block.offset for block in blocks)), len (blocks))
         self.assertEqual (alloc.Size, size)
+        reload ()
 
         # remove some
-        for offset, order in blocks [1 << 14:]:
-            size -= 1 << order
-            alloc.Free (offset, order)
+        for block in blocks [1 << 14:]:
+            size -= block.size
+            alloc.Free (block)
         blocks = blocks [:1 << 14]
-        self.assertEqual (len (set (offset for offset, order in blocks)), len (blocks))
+        self.assertEqual (len (set (block.offset for block in blocks)), len (blocks))
         self.assertEqual (alloc.Size, size)
+        reload ()
 
         # remove all
-        for offset, order in blocks:
-            size -= 1 << order
-            alloc.Free (offset, order)
+        for block in blocks:
+            size -= block.size
+            alloc.Free (block)
         self.assertEqual (size, 0)
         self.assertEqual (alloc.Size, 0)
+        reload ()
 
 # vim: nu ft=python columns=120 :

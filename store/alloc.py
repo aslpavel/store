@@ -1,133 +1,172 @@
 # -*- coding: utf-8 -*-
 import operator
 import functools
-from bisect import bisect_left
+import struct
+from bisect import bisect_left, insort
 
-from ..serialize import StructSerializer
+from ..serialize import Serializer
 
-__all__ = ('StoreAllocator',)
+__all__ = ('StoreBlock', 'StoreAllocator',)
+#------------------------------------------------------------------------------#
+# Store Block                                                                  #
+#------------------------------------------------------------------------------#
+class StoreBlock (object):
+    """Store block object
+
+    Descriptor format:
+
+        0       6      7 + order         64
+        +-------+------+-----------------+
+        | order | used | offset >> order |
+        +-------+------+-----------------+
+
+        Because data offset is always aligned by its order, first order bits
+        of the offset can be used to store used size.
+    """
+    __slots__ = ('order', 'offset', 'used',)
+
+    def __init__ (self, order, offset, used = 0):
+        self.order = order
+        self.offset = offset
+        self.used = used
+
+    #--------------------------------------------------------------------------#
+    # Compare                                                                  #
+    #--------------------------------------------------------------------------#
+    def __lt__ (self, other):
+        """Less then
+        """
+        return (self.order, self.offset) < (other.order, other.offset)
+
+    def __eq__ (self, other):
+        """Equal to
+        """
+        return (self.order, self.offset) == (other.order, other.offset)
+
+    def __hash__ (self):
+        """Get hash
+        """
+        return hash ((self.order, self.offset))
+
+    #--------------------------------------------------------------------------#
+    # Properties                                                               #
+    #--------------------------------------------------------------------------#
+    @property
+    def size (self):
+        """Size of the block
+        """
+        return 1 << self.order
+
+    #--------------------------------------------------------------------------#
+    # Serialization                                                            #
+    #--------------------------------------------------------------------------#
+    def ToDesc (self):
+        """Convert block to integer descriptor
+        """
+        return self.order | (self.used << 6) | (self.offset << 7)
+
+    @classmethod
+    def FromDesc (cls, desc):
+        """Restore block from integer descriptor
+        """
+        order = desc & 0x3f
+        value = desc >> 6
+        value_mask = (1 << (order + 1)) - 1
+
+        return cls (order, (value & ~value_mask) >> 1, value & value_mask)
+
+    #--------------------------------------------------------------------------#
+    # Representation                                                           #
+    #--------------------------------------------------------------------------#
+    def __str__ (self):
+        """String representation
+        """
+        return '<StoreBLock [order:{} offset:{} used:{}]>'.format (
+            self.order, self.offset, self.used)
+
+    def __repr__ (self):
+        """String representation
+        """
+        return str (self)
+
 #------------------------------------------------------------------------------#
 # Store Allocator                                                              #
 #------------------------------------------------------------------------------#
 class StoreAllocator (object):
-    """Store Allocator
+    """Store buddy allocator
 
-    Buddy allocator used by Store
+    ``blocks`` is a sorted list of free blocks.
     """
+    max_order = 57 # 64 - 6 (used by order) - 1 (used by size)
 
-    def __init__ (self, mapping = None):
-        self.mapping = mapping
+    def __init__ (self, blocks = None):
+        self.blocks = blocks or [StoreBlock (self.max_order, 0)]
 
     def Alloc (self, size):
-        """Allocate block
+        """Allocate block by size
 
-        Allocate block at least as big as size
+        Block it is an order-offset pair.
         """
         return self.AllocByOrder ((size - 1).bit_length ())
 
     def AllocByOrder (self, order):
         """Allocate block by order
 
-        Allocate block of 2^order size
+        Block it is an order-offset pair.
         """
-        if self.mapping is None:
-            # first allocation
-            self.mapping = [[] for _ in range (order)]
-            self.mapping.append ([1 << order])
+        index = bisect_left (self.blocks, StoreBlock (order, 0))
+        if index >= len (self.blocks):
+            raise ValueError ('Out of space')
 
-            return 0, order
+        block = self.blocks.pop (index)
+        for block_order in range (order, block.order):
+            insort (self.blocks, StoreBlock (block_order, block.offset + (1 << block_order)))
 
-        elif len (self.mapping) <= order:
-            # highest order allocation
-            self.mapping.extend ([1 << mapping_order] for mapping_order in range (len (self.mapping), order))
-            self.mapping.append ([])
+        return StoreBlock (order, block.offset)
 
-            return 1 << order, order
-
-        # find suitable block
-        block = None
-        for block_order in range (order, len (self.mapping)):
-            mapping = self.mapping [block_order]
-            if mapping:
-                block = mapping.pop (0)
-                break
-
-        if block is None:
-            self.mapping.append ([])
-
-            block_order += 1
-            block = 1 << block_order
-
-        # split until best-fit is found
-        for mapping_order in range (order, block_order):
-            self.mapping [mapping_order].append (block + (1 << mapping_order))
-
-        return block, order
-
-
-    def Free (self, offset, order):
-        """Free block with given offset and order
+    def Free (self, block):
+        """Free previously allocated block
         """
-        for order in range (order, len (self.mapping)):
-            buddy_offset = offset ^ (1 << order)
-            mapping = self.mapping [order]
+        for order in range (block.order, self.max_order):
+            buddy = StoreBlock (order, block.offset ^ (1 << order))
 
-            # check if buddy is free
-            buddy_index = bisect_left (mapping, buddy_offset)
-            if not mapping or buddy_index >= len (mapping) or buddy_offset != mapping [buddy_index]:
-                mapping.insert (buddy_index, offset)
+            index = bisect_left (self.blocks, buddy)
+            if index < len (self.blocks) and buddy == self.blocks [index]:
+                self.blocks.pop (index)
+                block = StoreBlock (order + 1,
+                    buddy.offset if block.offset & (1 << order) else block.offset)
+
+            else:
+                self.blocks.insert (index, block)
                 return
 
-            # merge with buddy
-            mapping.pop (buddy_index)
-            if offset & (1 << order):
-                offset = buddy_offset
-
-        # allocator is free
-        self.mapping = None
+        assert not self.blocks
+        self.blocks.append (block)
 
     @property
     def Size (self):
-        """Total size of allocated space
+        """Size of allocated space
         """
-        if self.mapping is None:
-            return 0
-
-        return (1 << len (self.mapping)) - functools.reduce (operator.add,
-            (len (mapping) * (1 << order) for order, mapping in enumerate (self.mapping)))
+        return (1 << self.max_order) - functools.reduce (operator.add,
+                (block.size for block in self.blocks), 0)
 
     #--------------------------------------------------------------------------#
     # Serialization                                                            #
     #--------------------------------------------------------------------------#
+    desc_struct = struct.Struct ('>Q')
+
     def ToStream (self, stream):
         """Save allocator to stream
         """
-        packed = []
-        for mapping in self.mapping or []:
-            packed.append (len (mapping))
-            packed.extend (mapping)
-        StructSerializer.ToStream (stream, '>Q', packed)
-
+        Serializer (stream).StructTupleWrite (
+            [block.ToDesc () for block in self.blocks], self.desc_struct)
         return stream
 
     @classmethod
     def FromStream (cls, stream):
         """Load allocator from stream
         """
-        mapping     = []
-        packed      = StructSerializer.FromStream (stream, '>Q')
-        packed_size = len (packed)
-
-        index = 0
-        while index < packed_size:
-            size   = packed [index]
-            index += 1
-            if size:
-                mapping.append (list (packed [index:index + size]))
-                index += size
-            else:
-                mapping.append ([])
-
-        return cls (mapping or None)
+        return cls ([StoreBlock.FromDesc (desc)
+            for desc in Serializer (stream).StructTupleRead (cls.desc_struct)])
 
 # vim: nu ft=python columns=120 :

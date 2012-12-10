@@ -1,95 +1,84 @@
 # -*- coding: utf-8 -*-
 import struct
 
-__all__ = ('StructSeriaizer', 'BytesSerializer',)
+__slots__ = ('Serializer',)
 #------------------------------------------------------------------------------#
-# Structures Serializer                                                        #
+# Serializer                                                                   #
 #------------------------------------------------------------------------------#
-class StructSerializer (object):
-    """Structures serializer
+class Serializer (object):
+    """Stream serializer
 
-    Save or loads list of structures to or from stream
+    It is synchronous version for BufferedStream's serializer.
     """
-    header_struct = struct.Struct ('>Q')
+    size_struct = struct.Struct ('>I')
 
-    def __init__ (self):
-        raise TypeError ('Serializer is a static type')
+    def __init__ (self, stream):
+        self.stream = stream
 
-    @classmethod
-    def ToStream (cls, stream, fmt, items):
-        """Save to stream
+    #--------------------------------------------------------------------------#
+    # Properties                                                               #
+    #--------------------------------------------------------------------------#
+    @property
+    def Stream (self):
+        """Backing store stream
         """
-        write = stream.write
-        items = items if hasattr (items, '__len__') else list (items)
-        item_struct = struct.Struct (fmt)
+        return self.stream
 
-        write (cls.header_struct.pack (len (items)))
-        if len (items):
-            if isinstance (items [0], tuple):
-                for item in items:
-                    write (item_struct.pack (*item))
-            else:
-                for item in items:
-                    write (item_struct.pack (item))
-
-        return stream
-
-    @classmethod
-    def FromStream (cls, stream, fmt):
-        """Load from stream
+    #--------------------------------------------------------------------------#
+    # Bytes                                                                    #
+    #--------------------------------------------------------------------------#
+    def BytesRead (self):
+        """Read bytes object
         """
-        read  = stream.read
-        count = cls.header_struct.unpack (read (cls.header_struct.size)) [0]
+        return self.stream.read (self.size_struct.unpack (
+               self.stream.read (self.size_struct.size)) [0])
 
-        items = []
-        item_struct = struct.Struct (fmt)
-        item_size   = item_struct.size
-
-        if count:
-            item = item_struct.unpack (read (item_size))
-            if len (item) > 1:
-                items.append (item)
-                for _ in range (count - 1):
-                    items.append (item_struct.unpack (read (item_size)))
-            else:
-                items.append (item [0])
-                for _ in range (count - 1):
-                    items.append (item_struct.unpack (read (item_size)) [0])
-
-        return items
-
-#------------------------------------------------------------------------------#
-# Bytes Serializer                                                             #
-#------------------------------------------------------------------------------#
-class BytesSerializer (object):
-    """Bytes serializer
-
-    Save or loads list of bytes (bytes is a type) to or from stream
-    """
-    size_format = '>L'
-
-    def __init__ (self):
-        raise TypeError ('Serializer is a static type')
-
-    @classmethod
-    def ToStream (cls, stream, items):
-        """Save to stream
+    def BytesWrite (self, bytes):
+        """Write bytes object to buffer
         """
-        write = stream.write
-        items = items if hasattr (items, '__len__') else list (items)
+        self.stream.write (self.size_struct.pack (len (bytes)))
+        self.stream.write (bytes)
 
-        StructSerializer.ToStream (stream, cls.size_format, (len (item) for item in items))
-        for item in items:
-            write (item)
-
-        return stream
-
-    @classmethod
-    def FromStream (cls, stream):
-        """Load from stream
+    #--------------------------------------------------------------------------#
+    # Tuple of structures                                                      #
+    #--------------------------------------------------------------------------#
+    def StructTupleRead (self, struct, complex = None):
+        """Read tuple of structures
         """
-        read = stream.read
-        return [read (size) for size in
-            StructSerializer.FromStream (stream, cls.size_format)]
+        struct_data = self.BytesRead ()
+        if complex:
+            return tuple (struct.unpack (struct_data [offset:offset + struct.size])
+                for offset in range (0, len (struct_data), struct.size))
+        else:
+            return tuple (struct.unpack (struct_data [offset:offset + struct.size]) [0]
+                for offset in range (0, len (struct_data), struct.size))
+
+    def StructTupleWrite (self, struct_tuple, struct, complex = None):
+        """Write tuple of structures to buffer
+        """
+        self.stream.write (self.size_struct.pack (len (struct_tuple) * struct.size))
+        if complex:
+            for struct_target in struct_tuple:
+                self.stream.write (struct.pack (*struct_target))
+        else:
+            for struct_target in struct_tuple:
+                self.stream.write (struct.pack (struct_target))
+
+    #--------------------------------------------------------------------------#
+    # Tuple of bytes                                                           #
+    #--------------------------------------------------------------------------#
+    def BytesTupleRead (self):
+        """Read array of bytes
+        """
+        return tuple (self.stream.read (size)
+            for size in self.StructTupleRead (self.size_struct))
+
+    def BytesTupleWrite (self, bytes_tuple):
+        """Write bytes array object to buffer
+        """
+        self.StructTupleWrite (tuple (len (bytes) for bytes in bytes_tuple), self.size_struct)
+
+        for bytes in bytes_tuple:
+            self.stream.write (bytes)
 
 # vim: nu ft=python columns=120 :

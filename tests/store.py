@@ -74,5 +74,4 @@ class StoreTest (unittest.TestCase):
             for data, desc in zip (datas, descs):
                 self.assertEqual (data, store.Load (desc))
 
-
 # vim: nu ft=python columns=120 :

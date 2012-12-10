@@ -1,74 +1,75 @@
 # -*- coding: utf-8 -*-
 import io
+import struct
 import unittest
 
-from ..serialize import StructSerializer, BytesSerializer
+from ..serialize import Serializer
 
 #------------------------------------------------------------------------------#
-# Struct Serializer Test                                                       #
+# Serializer Test                                                              #
 #------------------------------------------------------------------------------#
-class StructSerializerTest (unittest.TestCase):
-    """Structure serializer unit tests
+class SerializerTest (unittest.TestCase):
+    """Serializer unit test
     """
 
-    def testPersist (self):
-        """Test persistence
+    def testStruct (self):
+        """Structure serializer
         """
         struct_save = []
+        format = struct.Struct ('>L')
 
         # empty
         stream = io.BytesIO ()
-        self.assertEqual (StructSerializer.ToStream (stream, '>L', struct_save), stream)
+        serial = Serializer (stream)
+        serial.StructTupleWrite (struct_save, format)
 
         stream.seek (0)
-        struct_load = StructSerializer.FromStream (stream, '>L')
-        self.assertEqual (struct_save, struct_load)
+        struct_load = serial.StructTupleRead (format)
+        self.assertEqual (tuple (struct_save), struct_load)
 
         # normal
         stream = io.BytesIO ()
+        serial = Serializer (stream)
         struct_save.extend (range (10))
-        StructSerializer.ToStream (stream, '>L', struct_save)
+        serial.StructTupleWrite (struct_save, format)
 
         stream.seek (0)
-        struct_load = StructSerializer.FromStream (stream, '>L')
-        self.assertEqual (struct_save, struct_load)
+        struct_load = serial.StructTupleRead (format)
+        self.assertEqual (tuple (struct_save), struct_load)
 
         # tuple
         stream = io.BytesIO ()
-        struct_save = list ((i, i) for i in range (10))
-        StructSerializer.ToStream (stream, 'BB', struct_save)
+        serial = Serializer (stream)
+        struct_save = tuple ((i, i) for i in range (10))
+        format = struct.Struct ('BB')
+        serial.StructTupleWrite (struct_save, format, True)
 
         stream.seek (0)
-        struct_load = StructSerializer.FromStream (stream, 'BB')
-        self.assertEqual (struct_save, struct_load)
+        struct_load = serial.StructTupleRead (format, True)
+        self.assertEqual (tuple (struct_save), struct_load)
 
-#------------------------------------------------------------------------------#
-# Bytes List Test                                                              #
-#------------------------------------------------------------------------------#
-class BytesListTest (unittest.TestCase):
-    """Bytes serializer unit tests
-    """
-
-    def testPersist (self):
-        """Test persistence
+    def testBytes (self):
+        """Bytes serializer
         """
         bytes_save = []
 
         # empty
         stream = io.BytesIO ()
-        self.assertEqual (BytesSerializer.ToStream (stream, bytes_save), stream)
+        serial = Serializer (stream)
+        serial.BytesTupleWrite (bytes_save)
 
         stream.seek (0)
-        bytes_load = BytesSerializer.FromStream (stream)
-        self.assertEqual (bytes_save, bytes_load)
+        bytes_load = serial.BytesTupleRead ()
+        self.assertEqual (tuple (bytes_save), bytes_load)
 
         # normal
         stream = io.BytesIO ()
+        serial = Serializer (stream)
         bytes_save.extend (str (i).encode () for i in range (10))
-        BytesSerializer.ToStream (stream, bytes_save)
+        serial.BytesTupleWrite (bytes_save)
 
         stream.seek (0)
-        bytes_load = BytesSerializer.FromStream (stream)
-        self.assertEqual (bytes_save, bytes_load)
+        bytes_load = serial.BytesTupleRead ()
+        self.assertEqual (tuple (bytes_save), bytes_load)
 
 # vim: nu ft=python columns=120 :

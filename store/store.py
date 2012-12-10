@@ -2,8 +2,8 @@
 import io
 import struct
 
-from .alloc import StoreAllocator
-from ..serialize import BytesSerializer, StructSerializer
+from .alloc import StoreBlock, StoreAllocator
+from ..serialize import Serializer
 
 __all__ = ('Store',)
 #------------------------------------------------------------------------------#
@@ -14,28 +14,20 @@ class Store (object):
 
     Data can be named and unnamed. Named data addressed by its name.
     Unnamed data addressed by its descriptor which can change if data changed.
-
-    Descriptor format:
-
-        0       8             order           64
-        +-------+---------------+-------------+
-        | order | data size - 1 | data offset |
-        +-------+---------------+-------------+
-
-        Because data offset is always aligned by its order, first order bits
-        of the offset can be used to store actual data size.
+    Descriptor is an unsigned 64-bit integer.
     """
 
-    header      = struct.Struct ('>QQ')
-    header_size = header.size
-    desc_format = '>Q'
+    header_struct = struct.Struct ('>QQ')
+    desc_struct = struct.Struct ('>Q')
 
     def __init__ (self, offset = None):
-        self.offset = offset or 0
+        offset = offset or 0
+
+        self.offset = offset + self.header_struct.size
         self.disposables = []
 
-        header = self.LoadByOffset (self.offset, self.header_size)
-        self.alloc_desc, self.names_desc = self.header.unpack (header) if header else (0, 0)
+        header = self.LoadByOffset (offset, self.header_struct.size)
+        self.alloc_desc, self.names_desc = self.header_struct.unpack (header) if header else (0, 0)
 
         # allocator
         if self.alloc_desc:
@@ -45,10 +37,10 @@ class Store (object):
 
         # names
         if self.names_desc:
-            stream = io.BytesIO (self.Load (self.names_desc))
+            serialzer = Serializer (io.BytesIO (self.Load (self.names_desc)))
             self.names = dict (zip (
-                BytesSerializer.FromStream (stream),                      # names
-                StructSerializer.FromStream (stream, self.desc_format)))  # descs
+                serialzer.BytesTupleRead (),                   # names
+                serialzer.StructTupleRead (self.desc_struct))) # descriptors
         else:
             self.names = {}
 
@@ -61,8 +53,8 @@ class Store (object):
         if not desc:
             return b''
 
-        offset, size, order = self.desc_unpack (desc)
-        return self.LoadByOffset (self.offset + self.header_size + offset, size)
+        block = StoreBlock.FromDesc (desc)
+        return self.LoadByOffset (self.offset + block.offset, block.used)
 
     def LoadByName (self, name):
         """Load data by name
@@ -91,9 +83,9 @@ class Store (object):
         if not data:
             return 0
 
-        desc = self.Reserve (len (data), desc)
-        self.SaveByOffset (self.offset + self.header_size + self.desc_unpack (desc) [0], data)
-        return desc
+        block = self.ReserveBlock (len (data), desc)
+        self.SaveByOffset (self.offset + block.offset, data)
+        return block.ToDesc ()
 
     def SaveByName (self, name, data):
         """Save data by name
@@ -124,8 +116,7 @@ class Store (object):
         if not desc:
             return
 
-        offset, size, order = self.desc_unpack (desc)
-        self.alloc.Free (offset, order)
+        self.alloc.Free (StoreBlock.FromDesc (desc))
 
     def DeleteByName (self, name):
         """Delete data by name
@@ -144,15 +135,26 @@ class Store (object):
     #--------------------------------------------------------------------------#
     def Reserve (self, size, desc = None):
         """Reserve space without actually writing anything in it
+
+        Returns store's block descriptor.
+        """
+        return self.ReserveBlock (size, desc).ToDesc ()
+
+    def ReserveBlock (self, size, desc = None):
+        """Reserve space without actually writing anything in it
+
+        Return store block.
         """
         if desc:
-            desc_offset, desc_size, desc_order = self.desc_unpack (desc)
-            if size <= 1 << desc_order:
-                return self.desc_pack (desc_offset, size, desc_order)
-            self.alloc.Free (desc_offset, desc_order)
+            block = StoreBlock.FromDesc (desc)
+            if block.size >= size:
+                block.used = size
+                return block
+            self.alloc.Free (block)
 
-        offset, order = self.alloc.Alloc (size)
-        return self.desc_pack (offset, size, order)
+        block = self.alloc.Alloc (size)
+        block.used = size
+        return block
 
     #--------------------------------------------------------------------------#
     # Flush                                                                    #
@@ -162,19 +164,18 @@ class Store (object):
         """
         # names
         if self.names:
-            names = tuple (self.names.items ())
-            stream = io.BytesIO ()
-            BytesSerializer.ToStream (stream, (name for name, desc in names))
-            StructSerializer.ToStream (stream, self.desc_format, (desc for name, desc in names))
-            self.names_desc = self.Save (stream.getvalue (), self.names_desc)
+            serializer = Serializer (io.BytesIO ())
+            serializer.BytesTupleWrite (tuple (self.names.keys ()))
+            serializer.StructTupleWrite (tuple (self.names.values ()), self.desc_struct)
+            self.names_desc = self.Save (serializer.Stream.getvalue (), self.names_desc)
 
         else:
             self.Delete (self.names_desc)
             self.names_desc = 0
 
-        # allocator
-        if (self.alloc_desc or self.alloc.Size and
-            self.alloc.Size != 1 << self.desc_unpack (self.alloc_desc) [2]):
+        # Check if nothing is allocated of the only thing allocated is
+        # allocator itself.
+        if self.alloc.Size - (StoreBlock.FromDesc (self.alloc_desc).size if self.alloc_desc else 0):
             while True:
                 alloc_state = self.alloc.ToStream (io.BytesIO ()).getvalue ()
                 self.alloc_desc, alloc_desc = self.Save (alloc_state, self.alloc_desc), self.alloc_desc
@@ -186,7 +187,8 @@ class Store (object):
             assert not self.alloc.Size, 'Allocator is broken'
 
         # header
-        self.SaveByOffset (self.offset, self.header.pack (self.alloc_desc, self.names_desc))
+        self.SaveByOffset (self.offset - self.header_struct.size,
+            self.header_struct.pack (self.alloc_desc, self.names_desc))
 
     #--------------------------------------------------------------------------#
     # Mapping                                                                  #
@@ -211,33 +213,16 @@ class Store (object):
 
         # allocator
         if self.alloc_desc:
-            size += 1 << self.desc_unpack (self.alloc_desc) [2]
+            size += StoreBlock.FromDesc (self.alloc_desc).size
 
         # names
         if self.names_desc:
-            size += 1 << self.desc_unpack (self.names_desc) [2]
+            size += StoreBlock.FromDesc (self.names_desc).size
 
         for desc in self.names.values ():
-            size += 1 << self.desc_unpack (desc) [2]
+            size += StoreBlock.FromDesc (desc).size
 
         return self.alloc.Size - size
-
-    #--------------------------------------------------------------------------#
-    # Private                                                                  #
-    #--------------------------------------------------------------------------#
-    def desc_pack (self, offset, size, order):
-        """Pack descriptor
-        """
-        assert not (offset & size - 1), 'Offset is not aligned'
-        return order | (offset | size - 1) << 8
-
-    def desc_unpack (self, desc):
-        """Unpack descriptor
-        """
-        order      = desc &  0xff
-        value      = desc >> 8
-        value_mask = (1 << order) - 1
-        return value & ~value_mask, (value & value_mask) + 1, order
 
     #--------------------------------------------------------------------------#
     # Disposable                                                               #
