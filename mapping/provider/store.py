@@ -320,7 +320,7 @@ class StoreBPTreeProvider (BPTreeProvider):
     def SizeOnStore (self):
         """Size occupied on store
         """
-        return functools.reduce (operator.add, (StoreBlock (node.desc).size
+        return functools.reduce (operator.add, (StoreBlock.FromDesc (node.desc).size
             for node in self if node.desc > 0), 0)
 
     #--------------------------------------------------------------------------#
