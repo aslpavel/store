@@ -418,13 +418,13 @@ class StoreBPTreeProvider (BPTreeProvider):
                 lambda stream: pickle.load (stream))
 
         elif type.startswith ('struct:'):
-            format = type.partition (':') [-1]
+            format = type.partition (':') [-1].encode ()
             item_struct = struct.Struct (format)
 
             # determine if structure is complex (more then one value)
-            item_complex = len (format.translate (str.maketrans ({flag: None for flag in '<>=!@'}))) > 1
+            item_complex = len (format.translate (None, b'<>=!@')) > 1
 
-            return ('struct:{}'.format (format),
+            return ('struct:{}'.format (format.decode ()),
                 lambda stream, items: Serializer (stream).StructTupleWrite (items, item_struct, item_complex),
                 lambda stream: Serializer (stream).StructTupleRead (item_struct, item_complex))
 
