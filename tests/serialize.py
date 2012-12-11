@@ -21,32 +21,32 @@ class SerializerTest (unittest.TestCase):
         # empty
         stream = io.BytesIO ()
         serial = Serializer (stream)
-        serial.StructTupleWrite (struct_save, format)
+        serial.StructListWrite (struct_save, format)
 
         stream.seek (0)
-        struct_load = serial.StructTupleRead (format)
-        self.assertEqual (tuple (struct_save), struct_load)
+        struct_load = serial.StructListRead (format)
+        self.assertEqual (struct_save, struct_load)
 
         # normal
         stream = io.BytesIO ()
         serial = Serializer (stream)
         struct_save.extend (range (10))
-        serial.StructTupleWrite (struct_save, format)
+        serial.StructListWrite (struct_save, format)
 
         stream.seek (0)
-        struct_load = serial.StructTupleRead (format)
-        self.assertEqual (tuple (struct_save), struct_load)
+        struct_load = serial.StructListRead (format)
+        self.assertEqual (struct_save, struct_load)
 
         # tuple
         stream = io.BytesIO ()
         serial = Serializer (stream)
-        struct_save = tuple ((i, i) for i in range (10))
+        struct_save = [(i, i) for i in range (10)]
         format = struct.Struct ('BB')
-        serial.StructTupleWrite (struct_save, format, True)
+        serial.StructListWrite (struct_save, format, True)
 
         stream.seek (0)
-        struct_load = serial.StructTupleRead (format, True)
-        self.assertEqual (tuple (struct_save), struct_load)
+        struct_load = serial.StructListRead (format, True)
+        self.assertEqual (struct_save, struct_load)
 
     def testBytes (self):
         """Bytes serializer
@@ -56,20 +56,20 @@ class SerializerTest (unittest.TestCase):
         # empty
         stream = io.BytesIO ()
         serial = Serializer (stream)
-        serial.BytesTupleWrite (bytes_save)
+        serial.BytesListWrite (bytes_save)
 
         stream.seek (0)
-        bytes_load = serial.BytesTupleRead ()
-        self.assertEqual (tuple (bytes_save), bytes_load)
+        bytes_load = serial.BytesListRead ()
+        self.assertEqual (bytes_save, bytes_load)
 
         # normal
         stream = io.BytesIO ()
         serial = Serializer (stream)
         bytes_save.extend (str (i).encode () for i in range (10))
-        serial.BytesTupleWrite (bytes_save)
+        serial.BytesListWrite (bytes_save)
 
         stream.seek (0)
-        bytes_load = serial.BytesTupleRead ()
-        self.assertEqual (tuple (bytes_save), bytes_load)
+        bytes_load = serial.BytesListRead ()
+        self.assertEqual (bytes_save, bytes_load)
 
 # vim: nu ft=python columns=120 :

@@ -39,8 +39,8 @@ class Store (object):
         if self.names_desc:
             serialzer = Serializer (io.BytesIO (self.Load (self.names_desc)))
             self.names = dict (zip (
-                serialzer.BytesTupleRead (),                   # names
-                serialzer.StructTupleRead (self.desc_struct))) # descriptors
+                serialzer.BytesListRead (),                   # names
+                serialzer.StructListRead (self.desc_struct))) # descriptors
         else:
             self.names = {}
 
@@ -165,8 +165,8 @@ class Store (object):
         # names
         if self.names:
             serializer = Serializer (io.BytesIO ())
-            serializer.BytesTupleWrite (tuple (self.names.keys ()))
-            serializer.StructTupleWrite (tuple (self.names.values ()), self.desc_struct)
+            serializer.BytesListWrite (tuple (self.names.keys ()))
+            serializer.StructListWrite (tuple (self.names.values ()), self.desc_struct)
             self.names_desc = self.Save (serializer.Stream.getvalue (), self.names_desc)
 
         else:

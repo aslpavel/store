@@ -158,7 +158,7 @@ class StoreAllocator (object):
     def ToStream (self, stream):
         """Save allocator to stream
         """
-        Serializer (stream).StructTupleWrite (
+        Serializer (stream).StructListWrite (
             [block.ToDesc () for block in self.blocks], self.desc_struct)
         return stream
 
@@ -167,6 +167,6 @@ class StoreAllocator (object):
         """Load allocator from stream
         """
         return cls ([StoreBlock.FromDesc (desc)
-            for desc in Serializer (stream).StructTupleRead (cls.desc_struct)])
+            for desc in Serializer (stream).StructListRead (cls.desc_struct)])
 
 # vim: nu ft=python columns=120 :

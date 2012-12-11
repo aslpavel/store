@@ -235,10 +235,10 @@ class StoreBPTreeProvider (BPTreeProvider):
             if self.compress:
                 with CompressorStream (node_stream, self.compress) as stream:
                     self.keys_to_stream (stream, node.keys)
-                    Serializer (stream).StructTupleWrite (node.children, self.desc_struct)
+                    Serializer (stream).StructListWrite (node.children, self.desc_struct)
             else:
                 self.keys_to_stream (node_stream, node.keys)
-                Serializer (node_stream).StructTupleWrite (node.children, self.desc_struct)
+                Serializer (node_stream).StructListWrite (node.children, self.desc_struct)
 
             # node tag
             node_stream.write (b'\x00')
@@ -384,7 +384,7 @@ class StoreBPTreeProvider (BPTreeProvider):
 
             node =  StoreBPTreeNode (desc,
                 self.keys_from_stream (node_stream),
-                list (Serializer (node_stream).StructTupleRead (self.desc_struct)))
+                Serializer (node_stream).StructListRead (self.desc_struct))
         else:
             # load leaf
             prev, next = self.leaf_struct.unpack (node_data [:self.leaf_struct.size])
@@ -408,8 +408,8 @@ class StoreBPTreeProvider (BPTreeProvider):
         """
         if type == 'bytes':
             return ('bytes',
-                lambda stream, items: Serializer (stream).BytesTupleWrite (items),
-                lambda stream: Serializer (stream).BytesTupleRead ())
+                lambda stream, items: Serializer (stream).BytesListWrite (items),
+                lambda stream: Serializer (stream).BytesListRead ())
 
         elif type.startswith ('pickle'):
             protocol = int (type.partition (':') [-1] or str (pickle.HIGHEST_PROTOCOL))
@@ -425,8 +425,8 @@ class StoreBPTreeProvider (BPTreeProvider):
             item_complex = len (format.translate (None, b'<>=!@')) > 1
 
             return ('struct:{}'.format (format.decode ()),
-                lambda stream, items: Serializer (stream).StructTupleWrite (items, item_struct, item_complex),
-                lambda stream: Serializer (stream).StructTupleRead (item_struct, item_complex))
+                lambda stream, items: Serializer (stream).StructListWrite (items, item_struct, item_complex),
+                lambda stream: Serializer (stream).StructListRead (item_struct, item_complex))
 
         elif type == 'json':
             encode = codecs.getencoder ('utf-8')
