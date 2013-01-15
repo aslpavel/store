@@ -76,7 +76,7 @@ class StoreBlock (object):
         return cls (order, (value & ~value_mask) >> 1, value & value_mask)
 
     #--------------------------------------------------------------------------#
-    # Representation                                                           #
+    # To String                                                                #
     #--------------------------------------------------------------------------#
     def __str__ (self):
         """String representation
