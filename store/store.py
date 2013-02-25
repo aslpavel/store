@@ -191,18 +191,6 @@ class Store (object):
             self.header_struct.pack (self.alloc_desc, self.names_desc))
 
     #--------------------------------------------------------------------------#
-    # Mapping                                                                  #
-    #--------------------------------------------------------------------------#
-    def Mapping (self, name, order = None, key_type = None, value_type = None, compress = None):
-        """Create name mapping (B+Tree)
-        """
-        from ..mapping import StoreMapping
-
-        mapping = StoreMapping (self, name, order, key_type, value_type, compress)
-        self.disposables.append (mapping)
-        return mapping
-
-    #--------------------------------------------------------------------------#
     # Size                                                                     #
     #--------------------------------------------------------------------------#
     @property
@@ -223,6 +211,27 @@ class Store (object):
             size += StoreBlock.FromDesc (desc).size
 
         return self.alloc.Size - size
+
+    #--------------------------------------------------------------------------#
+    # Named Objects                                                            #
+    #--------------------------------------------------------------------------#
+    def Mapping (self, name, order = None, key_type = None, value_type = None, compress = None):
+        """Create name mapping (B+Tree)
+        """
+        from ..mapping import StoreMapping
+
+        mapping = StoreMapping (self, name, order, key_type, value_type, compress)
+        self.disposables.append (mapping)
+        return mapping
+
+    def Stream (self, name, buffer_size = None, compress = None):
+        """Create stream object with store backend.
+        """
+        from ..stream import StoreStream
+
+        stream = StoreStream (self, name, buffer_size, compress)
+        self.disposables.append (stream)
+        return stream
 
     #--------------------------------------------------------------------------#
     # Disposable                                                               #
