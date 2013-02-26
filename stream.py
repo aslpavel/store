@@ -12,13 +12,13 @@ class StoreStream (object):
     default_chunk_size = 1 << 16
 
     def __init__ (self, store, name, buffer_size = None, compress = None):
-        self.name = name
         self.store = store
+        self.name = name if isinstance (name, bytes) else name.encode ('utf-8')
         self.states = store.Mapping (b'.streams', key_type = 'bytes', value_type = 'json')
 
-        state = self.states.get (name)
+        state = self.states.get (self.name)
         if state is None:
-            self.chunk_size = buffer_size or self.defult_chunk_size
+            self.chunk_size = buffer_size or self.default_chunk_size
             self.chunks = []
             self.size = 0
             self.compress = self.default_compress if compress is None else compress
@@ -27,11 +27,12 @@ class StoreStream (object):
             self.chunks = state ['chunks']
             self.size = state ['size']
             self.compress = state ['compress']
-        self.chunk_zero = b'\x00' * self.chunk_size
 
-        self.seeked = False
+        self.seek_pos = None
+
         self.chunk_index = None
         self.chunk_dirty = False
+        self.chunk_zero = b'\x00' * self.chunk_size
         self.chunk_switch (0)
 
     def chunk_switch (self, index = None):
@@ -57,22 +58,14 @@ class StoreStream (object):
             self.chunk_desc = None
             self.chunk = Chunk (self.chunk_size)
 
-    def seek_real (self, pos):
-        """Actual seek implementation
-        """
-        index, offset = divmod (pos, self.chunk_size)
-        self.chunk_switch (index)
-        self.chunk.seek (offset)
-        self.seeked = None
-
     #--------------------------------------------------------------------------#
     # Write                                                                    #
     #--------------------------------------------------------------------------#
     def Write (self, data):
         """Write data to stream
         """
-        if self.seeked is not None:
-            self.seek_real (self.seeked)
+        if self.seek_pos is not None:
+            self.seek_do ()
 
         data_size = len (data)
         data_offset = 0
@@ -94,10 +87,9 @@ class StoreStream (object):
     def Read (self, size = None):
         """Read data from stream
         """
-
-        if self.seeked is not None:
-            if self.seeked < self.size:
-                self.seek_real (self.seeked)
+        if self.seek_pos is not None:
+            if self.seek_pos < self.size:
+                self.seek_do ()
             else:
                 return b''
 
@@ -127,20 +119,26 @@ class StoreStream (object):
         """Seek stream
         """
         if whence == 0:   # SEEK_SET
-            self.seeked = pos
-
+            self.seek_pos = pos
         elif whence == 1: # SEEK_CUR
-            self.seeked = self.chunk_index * self.chunk_size + self.chunk.tell () + pos
-
+            self.seek_pos = self.chunk_index * self.chunk_size + self.chunk.tell () + pos
         elif whence == 2: # SEEK_END
-            self.seeked = self.size + pos
-
+            self.seek_pos = self.size + pos
         else:
             raise ValueError ('Invalid whence argument: {}'.format (whence))
-
-        return self.seeked
+        return self.seek_pos
 
     def seek (self, pos, whence = 0): return self.Seek (pos, whence)
+
+    def seek_do (self):
+        """Actually seek
+        """
+        seek_pos, self.seek_pos = self.seek_pos, None
+        if seek_pos is None:
+            return
+        index, offset = divmod (seek_pos, self.chunk_size)
+        self.chunk_switch (index)
+        self.chunk.seek (offset)
 
     #--------------------------------------------------------------------------#
     # Tell                                                                     #
@@ -148,12 +146,30 @@ class StoreStream (object):
     def Tell (self):
         """Tell current position inside stream
         """
-        if self.seeked is None:
+        if self.seek_pos is None:
             return self.chunk_index * self.chunk_size + self.chunk.tell ()
         else:
-            return self.seeked
+            return self.seek_pos
 
     def tell (self): return self.Tell ()
+
+    #--------------------------------------------------------------------------#
+    # Truncate                                                                 #
+    #--------------------------------------------------------------------------#
+    def Truncate (self, pos = None):
+        """Truncate stream
+        """
+        if pos is not None:
+            self.seek (pos)
+        self.seek_do ()
+
+        chunks, self.chunks = self.chunks [self.chunk_index + 1:], self.chunks [:self.chunk_index + 1]
+        for chunk in chunks:
+            self.store.Delete (chunk)
+        self.chunk.truncate ()
+        self.chunk_dirty = True
+
+    def truncate (self, pos): self.Truncate (pos)
 
     #--------------------------------------------------------------------------#
     # Flush                                                                    #
@@ -166,13 +182,15 @@ class StoreStream (object):
             self.chunks [self.chunk_index] = self.store.Save (self.chunk.bytes ()
                 if not self.compress else zlib.compress (self.chunk.bytes (), self.compress))
 
-        self.states [self.name] = {
+        state = {
             'chunk_size': self.chunk_size,
             'chunks': self.chunks,
             'size': self.size,
             'compress': self.compress,
         }
-        self.states.Flush ()
+        if self.states.get (self.name) != state:
+            self.states [self.name] = state
+            self.states.Flush ()
 
     def flush (self): return self.Flush ()
     def close (self): return self.Flush ()
@@ -237,16 +255,16 @@ class Chunk (object):
     def tell (self):
         return self.pos
 
-    def truncate (self, pos):
-        self.size = pos
-        return pos
+    def truncate (self, pos = None):
+        self.size = self.pos if pos is None else pos
+        return self.size
 
     def bytes (self):
         return self.buf [:self.size]
 
     def __str__ (self):
         return 'Chunk [data:{} pos:{} cap:{}]'.format (
-            self.bytes (), self.pos, self.cap)
+            bytes (self.bytes ()), self.pos, self.cap)
 
     def __repr__ (self):
         return str (self)
