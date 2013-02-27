@@ -241,7 +241,7 @@ class Chunk (object):
         data = (self.buf [self.pos:self.size] if size is None else
             self.buf [self.pos:min (self.pos + size, self.size)])
         self.pos += len (data)
-        return data
+        return bytes (data)
 
     def seek (self, pos, whence = 0):
         if whence == 0:   # SEEK_SET
@@ -260,11 +260,10 @@ class Chunk (object):
         return self.size
 
     def bytes (self):
-        return self.buf [:self.size]
+        return bytes (self.buf [:self.size])
 
     def __str__ (self):
-        return 'Chunk [data:{} pos:{} cap:{}]'.format (
-            bytes (self.bytes ()), self.pos, self.cap)
+        return 'Chunk [data:{} pos:{} cap:{}]'.format (self.bytes (), self.pos, self.cap)
 
     def __repr__ (self):
         return str (self)
