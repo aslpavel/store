@@ -40,7 +40,7 @@ class StoreBPTreeProvider (BPTreeProvider):
     crc32_struct     = struct.Struct ('>I')
     leaf_struct      = struct.Struct ('>QQ')
 
-    def __init__ (self, store, name, order = None, key_type = None, value_type = None, compress = None):
+    def __init__ (self, store, header, order = None, key_type = None, value_type = None, compress = None):
         """Create provider
 
         Creates new provider or loads existing one identified by name. Compress
@@ -48,17 +48,17 @@ class StoreBPTreeProvider (BPTreeProvider):
         If key_type (value_type) is not specified they are set to 'pickle'
         """
         self.store = store
-        self.name = name
+        self.header = header
 
         self.d2n = {}
         self.desc_next = -1
         self.dirty = set ()
 
-        # unpack state
-        state_data = self.store.LoadByName (name)
-        if state_data:
-            state_json = state_data [:-self.crc32_struct.size]
-            crc32 = self.crc32_struct.unpack (state_data [-self.crc32_struct.size:]) [0]
+        # get header
+        header_data = header ()
+        if header_data:
+            state_json = header_data [:-self.crc32_struct.size]
+            crc32 = self.crc32_struct.unpack (header_data [-self.crc32_struct.size:]) [0]
 
             if crc32 != binascii.crc32 (state_json) & 0xffffffff:
                 raise ValueError ('Header checksum failed')
@@ -106,10 +106,10 @@ class StoreBPTreeProvider (BPTreeProvider):
     # Properties                                                               #
     #--------------------------------------------------------------------------#
     @property
-    def Name (self):
-        """Name property
+    def Header (self):
+        """Header getter/setter
         """
-        return self.name
+        return self.header
 
     @property
     def Store (self):
@@ -294,9 +294,9 @@ class StoreBPTreeProvider (BPTreeProvider):
         state_json = json.dumps (state, sort_keys = True).encode ()
         crc32 = binascii.crc32 (state_json) & 0xffffffff
 
-        state_data = state_json + self.crc32_struct.pack (crc32)
-        if self.store.LoadByName (self.name) != state_data:
-            self.store.SaveByName (self.name, state_data)
+        header_data = state_json + self.crc32_struct.pack (crc32)
+        if self.header () != header_data:
+            self.header (header_data)
 
     #--------------------------------------------------------------------------#
     # Properties                                                               #
@@ -362,7 +362,7 @@ class StoreBPTreeProvider (BPTreeProvider):
 
         for node in tuple (self):
             self.store.Delete (node.desc)
-        self.store.DeleteByName (self.name)
+        self.header (b'')
 
         self.size  = 0
         self.depth = 1

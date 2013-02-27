@@ -94,6 +94,7 @@ class Store (object):
             self.DeleteByName (name)
         else:
             self.names [name] = self.Save (data, self.names.get (name))
+        return data
 
     def __setitem__ (self, name, data):
         """Save data by name
@@ -215,12 +216,30 @@ class Store (object):
     #--------------------------------------------------------------------------#
     # Named Objects                                                            #
     #--------------------------------------------------------------------------#
+    def Cell (self, name):
+        """Cell object
+
+        Cell is a callable object. When called with argument sets argument as new
+        stored value and returns stored value. Otherwise just returns stored value.
+        """
+        name = name if isinstance (name, bytes) else name.encode ()
+        def cell (value = None):
+            """Get/Set value
+
+            If value is not set returns stored value, otherwise sets value as
+            stored value.
+            """
+            return (self.LoadByName (name) if value is None else
+                    self.SaveByName (name, value))
+        return cell
+
     def Mapping (self, name, order = None, key_type = None, value_type = None, compress = None):
         """Create name mapping (B+Tree)
         """
         from ..mapping import StoreMapping
 
-        mapping = StoreMapping (self, name, order, key_type, value_type, compress)
+        cell = self.Cell ('.mapping:{}'.format (name))
+        mapping = StoreMapping (self, cell, order, key_type, value_type, compress)
         self.disposables.append (mapping)
         return mapping
 
@@ -229,7 +248,8 @@ class Store (object):
         """
         from ..stream import StoreStream
 
-        stream = StoreStream (self, name, buffer_size, compress)
+        cell = self.Cell ('.stream:{}'.format (name))
+        stream = StoreStream (self, cell, buffer_size, compress)
         self.disposables.append (stream)
         return stream
 

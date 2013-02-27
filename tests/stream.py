@@ -5,7 +5,7 @@ import unittest
 from ..store import StreamStore
 
 class StoreStreamTest (unittest.TestCase):
-    def test (self):
+    def testCheck (self):
         store  = StreamStore (io.BytesIO ())
         stream = store.Stream (b'test', buffer_size = 8)
 
@@ -32,5 +32,14 @@ class StoreStreamTest (unittest.TestCase):
         # reload stream
         stream = store.Stream (b'test')
         self.assertEqual (stream.read (), b'\x00ABC' + b'\x00' * 6 + b'X')
+
+    def testMultiple (self):
+        store = StreamStore (io.BytesIO ())
+        with store.Stream ('a') as a, store.Stream ('b') as b:
+            a.write (b'stream a')
+            b.write (b'stream b')
+        with store.Stream ('a') as a, store.Stream ('b') as b:
+            self.assertEqual (a.read (), b'stream a')
+            self.assertEqual (b.read (), b'stream b')
 
 # vim: nu ft=python columns=120 :

@@ -9,17 +9,17 @@ __all__ = ('StoreMapping',)
 class StoreMapping (BPTree):
     """B+Tree with store as back end
     """
-    def __init__ (self, store, name, order = None, key_type = None, value_type = None, compress = None):
-        BPTree.__init__ (self, StoreBPTreeProvider (store, name, order, key_type, value_type, compress))
+    def __init__ (self, store, header, order = None, key_type = None, value_type = None, compress = None):
+        BPTree.__init__ (self, StoreBPTreeProvider (store, header, order, key_type, value_type, compress))
 
     #--------------------------------------------------------------------------#
     # Properties                                                               #
     #--------------------------------------------------------------------------#
     @property
-    def Name (self):
-        """Name property
+    def Header (self):
+        """Header getter/setter
         """
-        return self.provider.Name
+        return self.provider.Header
 
     @property
     def Store (self):

@@ -108,10 +108,12 @@ class StoreBPTreeTest (BPTreeTest):
         """Store B+Tree provider
         """
         if provider is None:
-            return StoreBPTreeProvider (StreamStore (io.BytesIO ()), b'::test', order = 7)
-        provider.Flush ()
-        provider.Store.Flush ()
-        return StoreBPTreeProvider (StreamStore (provider.Store.stream), provider.Name)
+            store = StreamStore (io.BytesIO ())
+        else:
+            provider.Flush ()
+            provider.Store.Flush ()
+            store = StreamStore (provider.Store.stream)
+        return StoreBPTreeProvider (store, store.Cell ('::test'), order = 7)
 
     def testConsistency (self):
         provider = BPTreeTest.testConsistency (self)

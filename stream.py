@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import zlib
+import json
 
 __all__ = ('StoreStream',)
 #------------------------------------------------------------------------------#
@@ -11,22 +12,22 @@ class StoreStream (object):
     default_compress  = 9
     default_chunk_size = 1 << 16
 
-    def __init__ (self, store, name, buffer_size = None, compress = None):
+    def __init__ (self, store, header, buffer_size = None, compress = None):
         self.store = store
-        self.name = name if isinstance (name, bytes) else name.encode ('utf-8')
-        self.states = store.Mapping (b'.streams', key_type = 'bytes', value_type = 'json')
+        self.header = header
 
-        state = self.states.get (self.name)
-        if state is None:
+        header = self.header ()
+        if not header:
             self.chunk_size = buffer_size or self.default_chunk_size
             self.chunks = []
             self.size = 0
             self.compress = self.default_compress if compress is None else compress
         else:
-            self.chunk_size = state ['chunk_size']
-            self.chunks = state ['chunks']
-            self.size = state ['size']
-            self.compress = state ['compress']
+            header = json.loads (header.decode ())
+            self.chunk_size = header ['chunk_size']
+            self.chunks = header ['chunks']
+            self.size = header ['size']
+            self.compress = header ['compress']
 
         self.seek_pos = None
 
@@ -182,15 +183,14 @@ class StoreStream (object):
             self.chunks [self.chunk_index] = self.store.Save (self.chunk.bytes ()
                 if not self.compress else zlib.compress (self.chunk.bytes (), self.compress))
 
-        state = {
+        header = json.dumps ({
             'chunk_size': self.chunk_size,
             'chunks': self.chunks,
             'size': self.size,
             'compress': self.compress,
-        }
-        if self.states.get (self.name) != state:
-            self.states [self.name] = state
-            self.states.Flush ()
+        }).encode ()
+        if self.header () != header:
+            self.header (header)
 
     def flush (self): return self.Flush ()
     def close (self): return self.Flush ()
