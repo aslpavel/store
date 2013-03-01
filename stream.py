@@ -44,8 +44,12 @@ class StoreStream (object):
 
         if self.chunk_dirty:
             self.chunk_dirty = False
-            self.chunks [self.chunk_index] = self.store.Save (self.chunk.bytes ()
-                if not self.compress else zlib.compress (self.chunk.bytes (), self.compress))
+            chunk_desc = self.store.Save (self.chunk.bytes () if not self.compress else
+                zlib.compress (self.chunk.bytes (), self.compress))
+            if self.chunk_index < len (self.chunks):
+                self.chunks [self.chunk_index] = chunk_desc
+            else:
+                self.chunks.append (chunk_desc)
 
         self.chunk_index = self.chunk_index + 1 if index is None else index
         if self.chunk_index < len (self.chunks):
@@ -55,7 +59,7 @@ class StoreStream (object):
                     self.store.Load (self.chunk_desc) if not self.compress else
                     zlib.decompress (self.store.Load (self.chunk_desc)))
         else:
-            self.chunks.extend ((None,) * (self.chunk_index - len (self.chunks) + 1))
+            self.chunks.extend ((None,) * (self.chunk_index - len (self.chunks)))
             self.chunk_desc = None
             self.chunk = Chunk (self.chunk_size)
 
@@ -180,8 +184,12 @@ class StoreStream (object):
         """
         if self.chunk_dirty:
             self.chunk_dirty = False
-            self.chunks [self.chunk_index] = self.store.Save (self.chunk.bytes ()
-                if not self.compress else zlib.compress (self.chunk.bytes (), self.compress))
+            chunk_desc = self.store.Save (self.chunk.bytes () if not self.compress else
+                zlib.compress (self.chunk.bytes (), self.compress))
+            if self.chunk_index < len (self.chunks):
+                self.chunks [self.chunk_index] = chunk_desc
+            else:
+                self.chunks.append (chunk_desc)
 
         header = json.dumps ({
             'chunk_size': self.chunk_size,
